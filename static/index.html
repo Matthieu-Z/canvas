@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Canvas MVP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4F46E5;
+            --error-color: #DC2626;
+            --success-color: #059669;
+            --background-color: #F3F4F6;
+            --card-background: #FFFFFF;
+            --text-primary: #111827;
+            --text-secondary: #4B5563;
+            --border-color: #E5E7EB;
+            --sketch-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            --sketch-border: 1px solid var(--border-color);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        h1 {
+            font-family: 'Inter', sans-serif;
+            font-size: 2rem;
+            font-weight: 600;
+            margin: 1rem 0;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        #container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            flex: 1;
+        }
+        
+        #login-container {
+            background: var(--card-background);
+            padding: 2rem;
+            border-radius: 4px;
+            box-shadow: var(--sketch-shadow);
+            border: var(--sketch-border);
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 1rem;
+        }
+
+        #canvas-container {
+            position: relative;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: var(--sketch-shadow);
+            border: var(--sketch-border);
+            background-color: var(--card-background);
+            padding: 1rem;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        
+        #canvas {
+            display: grid;
+            grid-template-columns: repeat(10, 30px);
+            grid-template-rows: repeat(10, 30px);
+            gap: 1px;
+            background-color: var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            border: var(--sketch-border);
+            margin: 0 auto;
+            padding: 4px;
+        }
+        
+        .tile {
+            width: 30px;
+            height: 30px;
+            background-color: var(--card-background);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 4px;
+        }
+        
+        .tile:hover {
+            transform: scale(1.1);
+            z-index: 1;
+            box-shadow: var(--sketch-shadow);
+        }
+        
+        #color-picker {
+            display: flex;
+            gap: 8px;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: var(--card-background);
+            border-radius: 4px;
+            box-shadow: var(--sketch-shadow);
+            border: var(--sketch-border);
+            justify-content: center;
+            flex-wrap: wrap;
+            position: sticky;
+            bottom: 0;
+            z-index: 100;
+        }
+        
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border: 2px solid var(--border-color);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            box-shadow: var(--sketch-shadow);
+        }
+        
+        .color-option:hover {
+            transform: scale(1.1);
+            border-color: var(--primary-color);
+        }
+
+        .color-option.selected {
+            border: 2px solid var(--primary-color);
+            transform: scale(1.1);
+        }
+        
+        #status {
+            background: var(--card-background);
+            padding: 1rem;
+            border-radius: 4px;
+            box-shadow: var(--sketch-shadow);
+            border: var(--sketch-border);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .status-item {
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            border-radius: 4px;
+            background: var(--background-color);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        #cooldown {
+            color: var(--error-color);
+            font-weight: 500;
+        }
+        
+        #coordinates {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            background-color: var(--card-background);
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 4px;
+            color: var(--text-secondary);
+            border: var(--sketch-border);
+        }
+
+        input[type="text"] {
+            padding: 0.75rem 1rem;
+            border: var(--sketch-border);
+            border-radius: 6px;
+            font-size: 1rem;
+            width: 200px;
+            margin-right: 0.5rem;
+            background: var(--card-background);
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            box-shadow: var(--sketch-shadow);
+        }
+
+        button:hover {
+            background-color: #6366F1;
+            transform: translateY(-1px);
+        }
+
+        #cooldown-message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--card-background);
+            color: var(--text-primary);
+            padding: 1rem;
+            border-radius: 4px;
+            box-shadow: var(--sketch-shadow);
+            border: var(--sketch-border);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #cooldown-message.visible {
+            opacity: 1;
+        }
+
+        @media (max-width: 600px) {
+            #canvas {
+                grid-template-columns: repeat(10, 25px);
+                grid-template-rows: repeat(10, 25px);
+            }
+            
+            .tile {
+                width: 25px;
+                height: 25px;
+            }
+            
+            .color-option {
+                width: 25px;
+                height: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>Collaborative Canvas MVP</h1>
+        
+        <div id="login-container">
+            <label for="userId">Your username:</label>
+            <input type="text" id="userId" placeholder="Enter a username">
+            <button id="connect-btn">Connect</button>
+        </div>
+        
+        <div id="app" style="display: none;">
+            <div id="color-picker"></div>
+            
+            <div id="canvas-container">
+                <div id="canvas"></div>
+                <div id="coordinates">X: 0, Y: 0</div>
+            </div>
+            
+            <div id="status">
+                <div class="status-item">
+                    <span>Status: </span>
+                    <span id="connection-status">Disconnected</span>
+                </div>
+                <div id="cooldown-container" class="status-item" style="display: none;">
+                    <span>Cooldown: </span>
+                    <span id="cooldown">0</span> seconds
+                </div>
+                <div class="status-item">
+                    <span id="users-online">Users online: 0</span>
+                </div>
+                <div class="status-item">
+                    <span id="server-info">Server: ...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="cooldown-message"></div>
+    
+    <script>
+        // Configuration
+        const CANVAS_WIDTH = 10;
+        const CANVAS_HEIGHT = 10;
+        const COLORS = [
+            "#FF4500", // Reddit Orange
+            "#FFA800", // Orange
+            "#FFD635", // Yellow
+            "#00A368", // Green
+            "#7EED56", // Light Green
+            "#2450A4", // Blue
+            "#3690EA", // Light Blue
+            "#51E9F4", // Cyan
+            "#811E9F", // Purple
+            "#FF99AA", // Pink
+            "#9C6926", // Brown
+            "#898D90", // Gray
+            "#D4D7D9", // Light Gray
+            "#FFFFFF", // White
+            "#000000", // Black
+            "#BE0039", // Red
+        ];
+        
+        // State variables
+        let userId = new URLSearchParams(window.location.search).get('userId') || '';
+        let socket = null;
+        let selectedColor = COLORS[0];
+        let cooldownActive = false;
+        let cooldownTimer = null;
+        let cooldownSeconds = 0;
+        let canvasData = {};
+        let currentServer = '';
+        let reconnectAttempts = 0;
+        let maxReconnectAttempts = 10;
+        let reconnectDelay = 3000; // 3 secondes
+        
+        // DOM Elements
+        const connectBtn = document.getElementById('connect-btn');
+        const userIdInput = document.getElementById('userId');
+        const canvasElement = document.getElementById('canvas');
+        const colorPicker = document.getElementById('color-picker');
+        const coordinatesDisplay = document.getElementById('coordinates');
+        const connectionStatus = document.getElementById('connection-status');
+        const cooldownContainer = document.getElementById('cooldown-container');
+        const cooldownDisplay = document.getElementById('cooldown');
+        const usersOnlineDisplay = document.getElementById('users-online');
+        const appContainer = document.getElementById('app');
+        const cooldownMessage = document.getElementById('cooldown-message');
+        const serverInfo = document.getElementById('server-info');
+
+        // Fill in the user field if available in the URL
+        if (userId) {
+            userIdInput.value = userId;
+        }
+        
+        // Initialize color picker
+        COLORS.forEach(color => {
+            const colorOption = document.createElement('div');
+            colorOption.className = 'color-option';
+            colorOption.style.backgroundColor = color;
+            colorOption.setAttribute('data-color', color);
+            colorOption.addEventListener('click', () => {
+                document.querySelectorAll('.color-option').forEach(el => {
+                    el.classList.remove('selected');
+                });
+                colorOption.classList.add('selected');
+                selectedColor = color;
+            });
+            colorPicker.appendChild(colorOption);
+        });
+        
+        // Select first color by default
+        document.querySelector('.color-option').classList.add('selected');
+        
+        // Initialize canvas grid
+        function initializeCanvas() {
+            canvasElement.innerHTML = '';
+            for (let y = 0; y < CANVAS_HEIGHT; y++) {
+                for (let x = 0; x < CANVAS_WIDTH; x++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    tile.id = `tile-${x}-${y}`;
+                    tile.setAttribute('data-x', x);
+                    tile.setAttribute('data-y', y);
+                    
+                    // Show coordinates on hover
+                    tile.addEventListener('mouseover', () => {
+                        coordinatesDisplay.textContent = `X: ${x}, Y: ${y}`;
+                    });
+                    
+                    // Place tile on click
+                    tile.addEventListener('click', () => {
+                        if (cooldownActive) {
+                            showCooldownMessage(`Please wait ${cooldownSeconds} seconds before placing another tile.`);
+                            return;
+                        }
+                        
+                        placeTile(x, y, selectedColor);
+                    });
+                    
+                    canvasElement.appendChild(tile);
+                }
+            }
+        }
+
+        function showCooldownMessage(message) {
+            cooldownMessage.textContent = message;
+            cooldownMessage.classList.add('visible');
+            setTimeout(() => {
+                cooldownMessage.classList.remove('visible');
+            }, 3000);
+        }
+        
+        // Update a tile on the canvas
+        function updateTile(x, y, color) {
+            const tile = document.getElementById(`tile-${x}-${y}`);
+            if (tile) {
+                tile.style.backgroundColor = color;
+            }
+        }
+        
+        // Place a tile and send the update
+        function placeTile(x, y, color) {
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                console.log('Not connected to server when attempting to place tile');
+                showCooldownMessage('Not connected to server! Attempting to reconnect...');
+                
+                // Store the tile to send after reconnection
+                const pendingTile = { x, y, color };
+                
+                // Try to reconnect
+                if (userId) {
+                    connectWebSocket();
+                    
+                    // Wait for the connection to be established to send the tile
+                    let attempts = 0;
+                    const maxAttempts = 10;
+                    const checkConnection = setInterval(() => {
+                        attempts++;
+                        if (socket && socket.readyState === WebSocket.OPEN) {
+                            clearInterval(checkConnection);
+                            console.log('Connection reestablished, sending pending tile');
+                            
+                            // Wait a short moment to ensure the connection is stable
+                            setTimeout(() => {
+                                placeTile(pendingTile.x, pendingTile.y, pendingTile.color);
+                            }, 500);
+                        } else if (attempts >= maxAttempts) {
+                            clearInterval(checkConnection);
+                            console.log('Unable to reestablish connection after several attempts');
+                            showCooldownMessage('Unable to reconnect to the server. Please try again later.');
+                        } else {
+                            console.log(`Waiting for connection... (${attempts}/${maxAttempts})`);
+                        }
+                    }, 1000);
+                }
+                return;
+            }
+            
+            try {
+                const message = {
+                    type: "place_tile",
+                    payload: {
+                        x: x,
+                        y: y,
+                        color: color
+                    }
+                };
+                
+                console.log('Sending tile update:', message);
+                
+                // Update the tile visually immediately for instant feedback
+                updateTile(x, y, color);
+                
+                // Send the update to the server
+                socket.send(JSON.stringify(message));
+                startCooldown();
+            } catch (e) {
+                console.error('Error sending tile update:', e);
+                showCooldownMessage('Error sending update. Please try again.');
+                
+                // If the error is connection-related, try to reconnect
+                if (e.name === 'NetworkError' || e.message.includes('network') || 
+                    !socket || socket.readyState !== WebSocket.OPEN) {
+                    console.log('Network error detected, attempting to reconnect...');
+                    connectWebSocket();
+                }
+            }
+        }
+        
+        // Start cooldown timer
+        function startCooldown() {
+            cooldownActive = true;
+            cooldownSeconds = 5; // 5 seconds for MVP
+            cooldownContainer.style.display = 'block';
+            cooldownDisplay.textContent = cooldownSeconds;
+            
+            if (cooldownTimer) {
+                clearInterval(cooldownTimer);
+            }
+            
+            cooldownTimer = setInterval(() => {
+                cooldownSeconds--;
+                cooldownDisplay.textContent = cooldownSeconds;
+                
+                if (cooldownSeconds <= 0) {
+                    clearInterval(cooldownTimer);
+                    cooldownActive = false;
+                    cooldownContainer.style.display = 'none';
+                }
+            }, 1000);
+        }
+        
+        // Connect to WebSocket server
+        function connectWebSocket() {
+            // If a connection is already in progress, don't start a new one
+            if (socket && socket.readyState === WebSocket.CONNECTING) {
+                console.log('WebSocket connection already in progress, no new attempt');
+                return;
+            }
+            
+            // If a connection is open, close it properly before creating a new one
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                console.log('Closing existing WebSocket connection before reconnecting');
+                socket.close(1000, "Voluntary reconnection");
+                
+                // Wait for the connection to close before creating a new one
+                setTimeout(() => {
+                    initWebSocketConnection();
+                }, 500);
+                return;
+            }
+            
+            // If the connection is closing, wait for it to close
+            if (socket && socket.readyState === WebSocket.CLOSING) {
+                console.log('WebSocket connection closing, waiting before new attempt');
+                setTimeout(() => {
+                    connectWebSocket();
+                }, 1000);
+                return;
+            }
+            
+            // Otherwise, initialize a new connection
+            initWebSocketConnection();
+        }
+        
+        // Initialize a new WebSocket connection
+        function initWebSocketConnection() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws?userId=${encodeURIComponent(userId)}`;
+            
+            connectionStatus.textContent = 'Connecting...';
+            connectionStatus.style.color = 'var(--text-secondary)';
+            
+            try {
+                console.log(`Attempting to connect to ${wsUrl} (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
+                socket = new WebSocket(wsUrl);
+                
+                // Set a timeout for the connection
+                const connectionTimeout = setTimeout(() => {
+                    if (socket && socket.readyState !== WebSocket.OPEN) {
+                        console.log('WebSocket connection timeout');
+                        socket.close(3000, "Connection timeout");
+                    }
+                }, 10000); // 10 seconds timeout
+                
+                // Configure native ping/pong handlers
+                socket.binaryType = 'arraybuffer';
+                
+                // Configure ping handler to respond automatically
+                // Note: This is an experimental feature and may not be supported by all browsers
+                if (typeof socket.onping === 'function') {
+                    socket.onping = (event) => {
+                        console.log("Native WebSocket ping received");
+                        // The browser automatically handles sending the pong
+                    };
+                }
+                
+                socket.onopen = () => {
+                    clearTimeout(connectionTimeout);
+                    connectionStatus.textContent = 'Connected';
+                    connectionStatus.style.color = 'var(--success-color)';
+                    console.log('WebSocket connection established');
+                    reconnectAttempts = 0; // Reset attempt counter
+                    
+                    // Initialize server text while waiting for real information
+                    serverInfo.textContent = `Server: Waiting for information...`;
+                    
+                    // Wait a short moment before starting the heartbeat
+                    // to ensure the connection is stable
+                    setTimeout(() => {
+                        startHeartbeat();
+                    }, 1000);
+                };
+                
+                socket.onmessage = (event) => {
+                    // If it's a binary message, it could be a ping
+                    if (event.data instanceof ArrayBuffer) {
+                        const data = new Uint8Array(event.data);
+                        // Check if it's a ping (code 0x09 according to WebSocket spec)
+                        if (data.length > 0 && data[0] === 0x09) {
+                            console.log("WebSocket ping detected");
+                            // Respond immediately with a pong
+                            try {
+                                if (socket.readyState === WebSocket.OPEN) {
+                                    // Send a pong (code 0x0A according to WebSocket spec)
+                                    socket.send(new Uint8Array([0x0A]));
+                                    console.log("Pong sent in response to ping");
+                                }
+                            } catch (e) {
+                                console.error("Error sending pong:", e);
+                            }
+                        } else {
+                            console.log("Binary message received (non-ping)");
+                        }
+                        return;
+                    }
+                    
+                    try {
+                        const data = JSON.parse(event.data);
+                        
+                        if (data.type === 'users_count') {
+                            const count = data.payload;
+                            usersOnlineDisplay.textContent = `Users online: ${count}`;
+                        } else if (data.type === 'server_info') {
+                            const info = data.payload;
+                            if (info.hostname) {
+                                serverInfo.textContent = `Server: ${info.hostname}`;
+                            }
+                        } else if (data.type === 'error' && data.payload === 'cooldown') {
+                            startCooldown();
+                        } else if (data.type === 'canvas_state') {
+                            console.log('Received full canvas state');
+                            canvasData = data.payload;
+                            
+                            // Update all tiles
+                            for (const [key, tile] of Object.entries(data.payload.tiles)) {
+                                updateTile(tile.x, tile.y, tile.color);
+                            }
+                        } else if (data.type === 'tile_update') {
+                            console.log('Received tile update:', data);
+                            const update = data.payload;
+                            updateTile(update.tile.x, update.tile.y, update.tile.color);
+                        } else {
+                            // Backward compatibility for older formats
+                            if (data.tile) {
+                                console.log('Received tile update (legacy format):', data);
+                                updateTile(data.tile.x, data.tile.y, data.tile.color);
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error processing message:', e);
+                    }
+                };
+                
+                socket.onclose = (event) => {
+                    clearTimeout(connectionTimeout);
+                    connectionStatus.textContent = 'Disconnected';
+                    connectionStatus.style.color = 'var(--error-color)';
+                    console.log('WebSocket connection closed', event.code, event.reason);
+                    serverInfo.textContent = 'Server: Disconnected';
+                    
+                    // Clean up resources
+                    if (window.heartbeatInterval) {
+                        clearInterval(window.heartbeatInterval);
+                    }
+                    
+                    // Display detailed information about the disconnection
+                    let closeReason = "Unknown reason";
+                    let shouldReconnect = true;
+                    
+                    switch (event.code) {
+                        case 1000:
+                            closeReason = "Normal closure";
+                            // Don't reconnect if it's a voluntary closure
+                            if (event.reason === "Voluntary reconnection") {
+                                shouldReconnect = false;
+                            }
+                            break;
+                        case 1001:
+                            closeReason = "Going away (page closed)";
+                            shouldReconnect = false;
+                            break;
+                        case 1005:
+                            closeReason = "No status code (ping/pong issue)";
+                            break;
+                        case 1006:
+                            closeReason = "Abnormal closure (network issue)";
+                            break;
+                        case 1012:
+                            closeReason = "Server restart";
+                            break;
+                        case 1013:
+                            closeReason = "Server overloaded";
+                            break;
+                        default:
+                            closeReason = `Code ${event.code}`;
+                    }
+                    console.log(`WebSocket disconnection: ${closeReason}${event.reason ? ` - ${event.reason}` : ''}`);
+                    
+                    // Try to reconnect after a delay with exponential backoff
+                    if (shouldReconnect && userId && reconnectAttempts < maxReconnectAttempts) {
+                        reconnectAttempts++;
+                        const delay = Math.min(30000, reconnectDelay * Math.pow(2, reconnectAttempts - 1));
+                        console.log(`Initialization error, reconnection attempt ${reconnectAttempts}/${maxReconnectAttempts} in ${delay/1000} seconds...`);
+                        connectionStatus.textContent = `Reconnecting in ${Math.round(delay/1000)}s...`;
+                        
+                        setTimeout(() => {
+                            console.log('Attempting to reconnect...');
+                            connectWebSocket();
+                        }, delay);
+                    } else if (reconnectAttempts >= maxReconnectAttempts) {
+                        console.log('Maximum number of reconnection attempts reached');
+                        connectionStatus.textContent = 'Reconnection impossible';
+                        showCooldownMessage('Unable to connect to the server. Please refresh the page.');
+                    }
+                };
+                
+                socket.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    connectionStatus.textContent = 'Error';
+                    connectionStatus.style.color = 'var(--error-color)';
+                    serverInfo.textContent = 'Server: Error';
+                    
+                    // Don't try to reconnect here, let the onclose handler handle it
+                    // as the onclose event will be triggered after onerror
+                };
+            } catch (e) {
+                console.error('WebSocket connection error:', e);
+                connectionStatus.textContent = 'Error';
+                connectionStatus.style.color = 'var(--error-color)';
+                
+                // Try to reconnect after a delay with exponential backoff
+                if (userId && reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    const delay = Math.min(30000, reconnectDelay * Math.pow(2, reconnectAttempts - 1));
+                    console.log(`Initialization error, reconnection attempt ${reconnectAttempts}/${maxReconnectAttempts} in ${delay/1000} seconds...`);
+                    connectionStatus.textContent = `Reconnecting in ${Math.round(delay/1000)}s...`;
+                    
+                    setTimeout(connectWebSocket, delay);
+                } else if (reconnectAttempts >= maxReconnectAttempts) {
+                    console.log('Maximum number of reconnection attempts reached');
+                    connectionStatus.textContent = 'Reconnection impossible';
+                    showCooldownMessage('Unable to connect to the server. Please refresh the page.');
+                }
+            }
+        }
+        
+        // Function to check connection status
+        function startHeartbeat() {
+            // Clean up any existing interval
+            if (window.heartbeatInterval) {
+                clearInterval(window.heartbeatInterval);
+            }
+            
+            // Check connection status every 5 seconds
+            window.heartbeatInterval = setInterval(() => {
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    console.log("WebSocket connection active");
+                } else if (socket && socket.readyState === WebSocket.CONNECTING) {
+                    console.log("WebSocket connecting...");
+                } else if (socket && (socket.readyState === WebSocket.CLOSING || socket.readyState === WebSocket.CLOSED)) {
+                    console.log("WebSocket closed or closing, state:", 
+                                ["CONNECTING", "OPEN", "CLOSING", "CLOSED"][socket.readyState]);
+                    clearInterval(window.heartbeatInterval);
+                    
+                    // Don't try to reconnect here, let the onclose handler handle it
+                } else {
+                    console.log("WebSocket not initialized");
+                    clearInterval(window.heartbeatInterval);
+                }
+            }, 5000); // Check every 5 seconds
+            
+            // Clean up the interval when the connection closes
+            socket.addEventListener('close', (event) => {
+                console.log("Connection closed, cleaning up heartbeat interval", event.code, event.reason);
+                clearInterval(window.heartbeatInterval);
+            });
+        }
+        
+        // Connect button event listener
+        connectBtn.addEventListener('click', () => {
+            userId = userIdInput.value.trim();
+            if (!userId) {
+                showCooldownMessage('Please enter a username');
+                return;
+            }
+            
+            // Update URL with username
+            const url = new URL(window.location);
+            url.searchParams.set('userId', userId);
+            window.history.pushState({}, '', url);
+            
+            appContainer.style.display = 'block';
+            initializeCanvas();
+            connectWebSocket();
+        });
+
+        // Allow connection with Enter key
+        userIdInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                connectBtn.click();
+            }
+        });
+        
+        // If userId is present in URL, connect automatically
+        if (userId) {
+            connectBtn.click();
+        }
+        
+        // Initialize the app
+        userIdInput.focus();
+    </script>
+</body>
+</html>
